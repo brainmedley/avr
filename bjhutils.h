@@ -52,11 +52,13 @@ B32(10000000,11111111,10101010,01010101) = 2164238933
 #define bit_clear_8(var, mask)   ((var) &= (uint8_t)~(mask))
 #define bit_toggle_8(var, mask)   ((var) ^= (uint8_t)(mask))
 #define bit_read_8(var, mask)   ((var) & (uint8_t)(mask))
+#define bit_assign_8(var, val, mask)   ((var) = (((var)&~(uint8_t)(mask))|((val)&(uint8_t)(mask))))
 
 #define bit_set_16(var, mask)   ((var) |= (uint16_t)(mask))
 #define bit_clear_16(var, mask)   ((var) &= (uint16_t)~(mask))
 #define bit_toggle_16(var, mask)   ((var) ^= (uint16_t)(mask))
 #define bit_read_16(var, mask)   ((var) & (uint16_t)(mask))
+#define bit_assign_16(var, val, mask)   ((var) = (((var)&~(uint16_t)(mask))|((val)&(uint16_t)(mask))))
 
  // 32 bit versions here
 
@@ -65,6 +67,7 @@ B32(10000000,11111111,10101010,01010101) = 2164238933
 #define bit_clear(var, mask) bit_clear_8(var, mask)
 #define bit_toggle(var, mask) bit_toggle_8(var, mask)
 #define bit_read(var, mask) bit_read_8(var, mask)
+#define bit_assign(var, val, mask) bit_assign_8(var, val, mask)
 
 #define BIT(x)   (1 << (x))
 #define LONGBIT(x)   ((uint32_t)1 << (x))
