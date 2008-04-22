@@ -38,9 +38,6 @@ uint8_t debounce(uint8_t sample)
 
 #define POSITION_OFFSET 50
 
-//#define BUTTON_DDR DDRD
-//#define BUTTON_PORT PORTD
-//#define BUTTON_PIN PIND
 #define BUTTON(reg) REG_PORT(reg, D)
 #define BUTTON_SET BIT(PD6)  // TODO: find out if the PD is needed
 #define BUTTON_GO BIT(PD7)
@@ -55,11 +52,11 @@ uint8_t sampleButtons() {
 
 enum  { RUN_MODE = 0, SET_MODE = 1 };
 
-uint8_t EEMEM positionAstore = 135;
-uint8_t EEMEM positionBstore = 135;
+// Declare and initialize non-volitile storage for the servo positions
+uint8_t EEMEM positionAstore = 140;  // 135 should be somewhere around the middle...
+uint8_t EEMEM positionBstore = 130;  // ...move a little to either side by default
 
 int main(void) {
-  // FIXME: unify the setup styles
   // Set up ADC
   bit_set(ADCSRA, ADC_PRESCALE_MASK);  // Set clock prescale
   bit_set(ADMUX, BIT(REFS0));  // Set reference to AVcc
@@ -72,7 +69,7 @@ int main(void) {
 
   // set up counter 1 (16 bit) to act as a dual channel PWM generator
   // we want OC1A and B to be set on reaching BOTTOM, clear on reaching
-  // compare match, use ICR1 as TOP and have a prescale of 8.  -- rewritten to assume 1MHz clock
+  // compare match, use ICR1 as TOP and have a prescale of 8.
   TCCR1A = BIT(COM1A1) // set OC1A/B at TOP
     | BIT(COM1B1) // clear OC1A/B when match
     | BIT(WGM11); // mode 14 (fast PWM, clear TCNT1 on match ICR1)
@@ -80,16 +77,19 @@ int main(void) {
     | BIT(WGM12)
     | BIT(CS11); // timer uses main system clock / 8 
   ICR1 = 2500; // used for TOP, makes for 50 hz PWM
-  OCR1A = 185; // servo at center (range of 125ish - 250ish)
-  OCR1B = 185; // servo at center  --  presently unused
+  OCR1A = eeprom_read_byte(&positionAstore) + POSITION_OFFSET; // servo range of 125ish - 250ish
+  OCR1B = 185; // servo at center  --  presently unused, could independantly drive another servo
   DDRB = BIT(PB1)
     | BIT(PB2);  // have to set up pins as outputs
 
-  bit_set(LED(DDR), LEDS);
-  bit_clear(LED(PORT), LEDS);
+  // Set up LED display
+  bit_set(LED(DDR), LEDS);  // Set LED pins to outputs
+  bit_clear(LED(PORT), LEDS);  // Initialize to 0 (off)
 
-  bit_clear(BUTTON(DDR), BUTTONS);
-  bit_set(BUTTON(PORT), BUTTONS);
+  // Set up button inputs
+  bit_clear(BUTTON(DDR), BUTTONS);  // Set button pins to inputs
+  bit_set(BUTTON(PORT), BUTTONS);  // Enable pull-up resistors
+
 
   uint8_t mode = RUN_MODE;
   uint8_t positionA = eeprom_read_byte(&positionAstore);
@@ -120,9 +120,8 @@ int main(void) {
     }
     
     if (SET_MODE == mode) {
-      // ENHANCEME: when not in SET_MODE, turn off adc and maybe even voltage divider -- source from some port?
-      // FIXME: when this moves to the EEPROM, gonna have to use an intermediate place in memory... or may just have mode change read / write in and out of the current in-ram locations
-      *currentPosition = ADCH;  // Read ADC, offset into the servo range and use that to set the servo pulse-width
+      // OPTIMIZEME: when not in SET_MODE, turn off adc and maybe even voltage divider
+      *currentPosition = ADCH;  // Read ADC and store it in whichever position is current
       bit_assign(LED(PORT), (ADCH >> 4), LEDS);  // Read ADC and divide by 16 to get 4-bit value (I only have 4 LEDs hooked up)
     }
 
