@@ -1,7 +1,19 @@
-// Temporary corral for handy stuff, to be refactored as needed
+/*
+This compilation (the Software) and all contributions by 
+Benjamin Holt is hereby donated to the public domain
 
-#ifndef _BJH_UTILS_H_
-#define _BJH_UTILS_H_ 1
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+#ifndef _BIT_HELPERS_H_
+#define _BIT_HELPERS_H_ 1
 
 /* From <http://www.thescripts.com/forum/thread216333.html> */
 /* Binary constant generator macro
@@ -47,6 +59,7 @@ B16(10101010,01010101) = 43605
 B32(10000000,11111111,10101010,01010101) = 2164238933
  */
 
+
 #include <inttypes.h>
 #define bit_set_8(var, mask)   ((var) |= (uint8_t)(mask))
 #define bit_clear_8(var, mask)   ((var) &= (uint8_t)~(mask))
@@ -69,11 +82,7 @@ B32(10000000,11111111,10101010,01010101) = 2164238933
 #define bit_read(var, mask) bit_read_8(var, mask)
 #define bit_assign(var, val, mask) bit_assign_8(var, val, mask)
 
-#define BIT(x)   (1 << (x))
+#define BIT(x)   (1 << (x))  // replacement for the poorly named _BV
 #define LONGBIT(x)   ((uint32_t)1 << (x))
 
-
-// Constructs things like PORTA or DDRA; to be used in definitions like LED(reg) REG_PORT(reg, A)  // ENHANCEME: it'd be nice to make this safer...
-#define REG_PORT(r, p) r##p
-
-#endif // _BJH_UTILS_H_
+#endif // _BIT_HELPERS_H_
