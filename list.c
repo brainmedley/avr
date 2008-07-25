@@ -1,12 +1,13 @@
 // Compact extensible event-driven state machine framework
 
 #include <stdlib.h>
-//#include <stdio.h>
+#include <stdio.h>
+#include <string.h>
 
 typedef enum { False = 0, True = 1 } boolean;
 
 /////  Linked List  /////
-// GOALS: reusable list data structure; hide implementation details (node structure, malloc / free, ...); efficient stack and queue usage; complete abstract API; minimal overhead
+// GOALS: reusable list data structure; hide implementation details (node structure, malloc / free, ...); efficient stack and queue use-cases; complete abstract API; minimal overhead
 // REM: yes, it takes more space than rolling your own, but I'm sick of writing them over and over and over again
 // FIXME: rename private stuff to indicate SPI
 
@@ -91,6 +92,8 @@ boolean push_tail(list *l, void *v) {
   l -> _tail = n;
   return True;
 }
+
+// FIXME: need peek_head / peek_tail (or first_item / last_item)
 
 // ENHANCEME: pop_tail  -- could be made more efficient with crazy xor-linked-list thingie, is it worth it though?  would make negative index support easier, still not sure it's worth it...
 
@@ -206,7 +209,208 @@ void destroy_list(list *l) {
 // TODO: map
 //////////
 
+/////  AVR Unit  /////
+// GOALS: concise, flexible, portable, unit testing framework & tools capable of running tests either on-computer or on-chip; self-hosting as much as it can be
+
+#define AU_RESULT_MESSAGE_LEN 256
+#define AU_RESULTS_LIST_LEN 256
+
+typedef enum { AU_PASS, AU_FAIL, AU_ERROR } result_type;  // REM: tryin' to work out if there's a better set of encodings... perhaps pass = 1, fail = 0, errors represented as failures of some "meta test"...
+
+typedef struct _result_struct {
+  result_type _type;
+  // TODO: ID in here somewhere, probably eventually w/ type bitfield'd in
+  char _message[AU_RESULT_MESSAGE_LEN];
+} _result;
+
+_result *results_list[AU_RESULTS_LIST_LEN];
+int results_end_index = -1;  // HACK ALERT: there must be a better way to work this than having to start from -1 and blindly incrementing
+
+
+_result *create_result(result_type type, char *message) {
+  _result *result = (_result *)malloc(sizeof(_result));
+  result -> _type = type;
+  strncpy(result -> _message, message, AU_RESULT_MESSAGE_LEN - 1);
+  result -> _message[AU_RESULT_MESSAGE_LEN - 1] = '\0';
+  return result;
+}
+
+void pass(char message[]) {
+  results_end_index++;
+  // FIXME: work out some way to abort if we've blown the list (return False? (maybe have returning False return from the test function via macro magic)  have runner check before the next test?)
+  _result *result = create_result(AU_PASS, message);
+  results_list[results_end_index] = result;
+}
+
+void fail(char message[]) {
+  results_end_index++;
+  // FIXME: work out some way to abort if we've blown the list (return False? (maybe have returning False return from the test function via macro magic)  have runner check before the next test?)
+  _result *result = create_result(AU_FAIL, message);
+  results_list[results_end_index] = result;
+}
+
+
+void print_results() {
+  int pass_count = 0, fail_count = 0, error_count = 0;
+  for (int i = 0 ; i <= results_end_index ; i++) {  // FIXME: Pass keeps incrementing the end, so this could prance merrily off the array
+    char *type_str;
+    _result *result = results_list[i];
+
+    switch (result -> _type) {
+    case AU_PASS:
+      type_str = "Pass";
+      pass_count++;
+      break;
+
+    case AU_FAIL:
+      type_str = "Fail";
+      fail_count++;
+      break;
+
+    case AU_ERROR:
+      type_str = "Error";
+      error_count++;
+      break;
+
+    default:
+      fprintf(stdout, "Error: unknown type '%d' for result '%d': %s\n", result -> _type, i, result -> _message);
+      error_count++;
+      break;
+    }
+    fprintf(stdout, "%s: %s\n", type_str, result -> _message);
+  }
+  fprintf(stdout, "Pass: %d  --  Fail: %d  --  Error: %d  --  Total: %d\n\n", 
+          pass_count, fail_count, error_count, pass_count + fail_count + error_count);
+}
+//////////
+
+
+/////  AVR Unit Tests  /////
+void run_au_tests() {
+  fprintf(stdout, "AU Tests:\n");
+  results_end_index = -1;
+  //setup_au_tests();
+  pass("WOOOOOOOT!!");
+  fail("failure");
+  //cleanup_au_tests();
+  print_results();
+}
+//////////
+
+
+/////  List Tests  /////
+char itemsArray[] = "abcdefghijklmnopqrstuvwxyz";
+char *itemPointer(char c) {
+  return &itemsArray[c - 'a'];
+}
+
+
+void test_stack() {
+  list *l = create_list();
+  char *a = itemPointer('a');
+  char *b = itemPointer('b');
+  char *c = itemPointer('c');
+
+  if (pop_head(l) == 0) pass("pop_head on empty list returned 0");
+  else fail("pop_head on empty list did not return 0");
+
+  push_head(l, a);
+  if (pop_head(l) == a) pass("pop_head returned what was pushed");
+  else fail("pop_head did not return what was pushed");
+
+  if (pop_head(l) == 0) pass("second pop_head returned 0");
+  else fail("second pop_head did not return 0");
+
+  push_head(l, a);
+  push_head(l, b);
+  push_head(l, c);
+  if (pop_head(l) == c) pass("pop_head returned what was pushed last");
+  else fail("pop_head did not return what was pushed last");
+  if (pop_head(l) == b) pass("pop_head returned what was pushed second");
+  else fail("pop_head did not return what was pushed second");
+  if (pop_head(l) == a) pass("pop_head returned what was pushed first");
+  else fail("pop_head did not return what was pushed first");
+
+  if (pop_head(l) == 0) pass("extra pop_head returned 0");
+  else fail("extra pop_head did not return 0");
+}
+
+
+void test_queue() {
+  list *l = create_list();
+  char *a = itemPointer('a');
+  char *b = itemPointer('b');
+  char *c = itemPointer('c');
+
+  push_tail(l, a);
+  if (pop_head(l) == a) pass("pop_head returned what was pushed onto the tail");
+  else fail("pop_head did not return what was pushed onto the tail");
+
+  if (pop_head(l) == 0) pass("second pop_head returned 0");
+  else fail("second pop_head did not return 0");
+
+  push_tail(l, a);
+  push_tail(l, b);
+  push_tail(l, c);
+  if (pop_head(l) == a) pass("pop_head returned what was pushed first");
+  else fail("pop_head did not return what was pushed first");
+  if (pop_head(l) == b) pass("pop_head returned what was pushed second");
+  else fail("pop_head did not return what was pushed second");
+  if (pop_head(l) == c) pass("pop_head returned what was pushed last");
+  else fail("pop_head did not return what was pushed last");
+
+  if (pop_head(l) == 0) pass("extra pop_head returned 0");
+  else fail("extra pop_head did not return 0");
+}
+
+
+void test_traversal() {
+  list *l = create_list();
+  char *a = itemPointer('a');
+  char *b = itemPointer('b');
+  char *c = itemPointer('c');
+  char *d = itemPointer('d');
+  char *e = itemPointer('e');
+  char *f = itemPointer('f');
+
+  push_tail(l, a);
+  if (next(l) == a) pass("next returned what was pushed onto the tail");
+  else fail("next did not return what was pushed onto the tail");
+
+  if (next(l) == 0) pass("second pop_head returned 0");
+  else fail("second pop_head did not return 0");
+
+  for (int i = 0 ; i < 6 ; i++) {
+    push_tail(l, &itemsArray[i]);
+  }
+
+  if (pop_head(l) == a) pass("pop_head returned what was pushed first");
+  else fail("pop_head did not return what was pushed first");
+  if (pop_head(l) == b) pass("pop_head returned what was pushed second");
+  else fail("pop_head did not return what was pushed second");
+  if (pop_head(l) == c) pass("pop_head returned what was pushed last");
+  else fail("pop_head did not return what was pushed last");
+
+  if (pop_head(l) == 0) pass("extra pop_head returned 0");
+  else fail("extra pop_head did not return 0");
+}
+
+
+void run_list_tests() {
+  fprintf(stdout, "List Tests:\n");
+  results_end_index = -1;
+  //setup_list_tests();
+  test_stack();
+  test_queue();
+  //cleanup_list_tests();
+  print_results();
+}
+//////////
+
+
 int main(void) {
+  run_au_tests();
+  run_list_tests();
   return 0;
 }
 
