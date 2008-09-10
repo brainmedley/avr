@@ -1,4 +1,4 @@
-// Compact extensible event-driven state machine framework
+// Reusable linked list data structure
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -9,7 +9,6 @@ typedef enum { False = 0, True = 1 } boolean;
 /////  Linked List  /////
 // GOALS: reusable list data structure; hide implementation details (node structure, malloc / free, ...); efficient stack and queue use-cases; complete abstract API; minimal overhead
 // REM: yes, it takes more space than rolling your own, but I'm sick of writing them over and over and over again
-// FIXME: rename private stuff to indicate SPI
 
 typedef struct _list_struct list;
 typedef struct _node_struct _node;
@@ -83,6 +82,7 @@ boolean push_tail(list *l, void *v) {
   }
 
   n -> _item = v;
+  n -> _next = 0;
   if (l -> _tail == 0) {
     l -> _head = n;
     l -> _current = n;  // REM: need to update _previous?
@@ -129,7 +129,7 @@ void *seek_item(list *l, void *v) {
   while (l -> _current != 0 && l -> _current -> _item != v) {
     next(l);
   }
-  if (l -> _current != 0) {
+  if (l -> _current != 0) {  // RF: just use the current item function
    return l -> _current -> _item;
   } else {
     return 0;
@@ -374,12 +374,20 @@ void test_traversal() {
   char *f = itemPointer('f');
 
   push_tail(l, a);
+  if (current_item(l) == a) pass("current_item returned what was pushed onto the tail");
+  else fail("current_item did not return what was pushed onto the tail");  
+
   if (next(l) == a) pass("next returned what was pushed onto the tail");
   else fail("next did not return what was pushed onto the tail");
 
-  if (next(l) == 0) pass("second pop_head returned 0");
-  else fail("second pop_head did not return 0");
+  if (current_item(l) == 0) pass("extra current_item returned 0");
+  else fail("extra current_item did not return 0");  
 
+  if (next(l) == 0) pass("extra next returned 0");
+  else fail("extra next did not return 0");
+
+  return;
+  
   for (int i = 0 ; i < 6 ; i++) {
     push_tail(l, &itemsArray[i]);
   }
@@ -402,6 +410,7 @@ void run_list_tests() {
   //setup_list_tests();
   test_stack();
   test_queue();
+  test_traversal();
   //cleanup_list_tests();
   print_results();
 }
@@ -445,6 +454,8 @@ ianaos: goal: unit tested
 ianaos: is not: a utility library, a "beginner platform", ...
 
 ianaos: design: simple scheduler + event queue + state machine = powerful lightweight app framework
+
+gcc -std=c99 -g -o /tmp/list list.c
 
 Roadmap:
 0.0.1: list datastructure + unit tests
