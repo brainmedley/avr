@@ -270,7 +270,7 @@
 							<key>PBXSmartGroupTreeModuleOutlineStateSelectionKey</key>
 							<array>
 								<array>
-									<integer>3</integer>
+									<integer>2</integer>
 									<integer>1</integer>
 									<integer>0</integer>
 								</array>
@@ -295,7 +295,7 @@
 							<real>221</real>
 						</array>
 						<key>RubberWindowFrame</key>
-						<string>130 55 1208 823 0 0 1440 878 </string>
+						<string>183 55 1208 823 0 0 1440 878 </string>
 					</dict>
 					<key>Module</key>
 					<string>PBXSmartGroupTreeModule</string>
@@ -313,7 +313,7 @@
 								<key>PBXProjectModuleGUID</key>
 								<string>1CE0B20306471E060097A5F4</string>
 								<key>PBXProjectModuleLabel</key>
-								<string>main.c</string>
+								<string>Makefile</string>
 								<key>PBXSplitModuleInNavigatorKey</key>
 								<dict>
 									<key>Split0</key>
@@ -321,11 +321,11 @@
 										<key>PBXProjectModuleGUID</key>
 										<string>1CE0B20406471E060097A5F4</string>
 										<key>PBXProjectModuleLabel</key>
-										<string>main.c</string>
+										<string>Makefile</string>
 										<key>_historyCapacity</key>
 										<integer>0</integer>
 										<key>bookmark</key>
-										<string>96F9644F1054CBB200C3EDE0</string>
+										<string>96F964691055BEBE00C3EDE0</string>
 										<key>history</key>
 										<array>
 											<string>96F062181027A7F800FA5B88</string>
@@ -338,13 +338,13 @@
 											<string>96AA788A103C71FC00653A14</string>
 											<string>96AA788C103C71FC00653A14</string>
 											<string>96AA788F103C71FC00653A14</string>
-											<string>96AA7890103C71FC00653A14</string>
 											<string>96A76284104AEB4200E580FE</string>
-											<string>96A76287104AEB4200E580FE</string>
 											<string>96BD2D7B104C98B7008857C2</string>
-											<string>96BD2D7D104C98B7008857C2</string>
 											<string>96F9641A1050C63500C3EDE0</string>
-											<string>96F9644A1054C9AA00C3EDE0</string>
+											<string>96F964531055743900C3EDE0</string>
+											<string>96F964551055743900C3EDE0</string>
+											<string>96F964671055BEBE00C3EDE0</string>
+											<string>96F964681055BEBE00C3EDE0</string>
 										</array>
 									</dict>
 									<key>SplitCount</key>
@@ -358,7 +358,7 @@
 								<key>Frame</key>
 								<string>{{0, 0}, {965, 777}}</string>
 								<key>RubberWindowFrame</key>
-								<string>130 55 1208 823 0 0 1440 878 </string>
+								<string>183 55 1208 823 0 0 1440 878 </string>
 							</dict>
 							<key>Module</key>
 							<string>PBXNavigatorGroup</string>
@@ -378,7 +378,7 @@
 								<key>Frame</key>
 								<string>{{0, 782}, {965, 0}}</string>
 								<key>RubberWindowFrame</key>
-								<string>130 55 1208 823 0 0 1440 878 </string>
+								<string>183 55 1208 823 0 0 1440 878 </string>
 							</dict>
 							<key>Module</key>
 							<string>XCDetailModule</string>
@@ -546,7 +546,7 @@
 		<string>/Volumes/Data/workdata/FLASH-svn/Trunk/avr/Thermanator/Thermanator.xcodeproj</string>
 	</array>
 	<key>WindowString</key>
-	<string>130 55 1208 823 0 0 1440 878 </string>
+	<string>183 55 1208 823 0 0 1440 878 </string>
 	<key>WindowToolsV3</key>
 	<array>
 		<dict>

@@ -6,12 +6,15 @@
 
 #include <avr/io.h>
 #include <util/delay.h>
-#include "../../bit_helpers.h"
 
 #include <avr/wdt.h>
 #include <avr/eeprom.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
+
+#include "bjhlib/bit_helpers.h"
+#include "bjhlib/debounce.h"
+#include "bjhlib/time.h"
 
 #include "usbdrv.h"
 #include "oddebug.h"
@@ -157,37 +160,6 @@ void setupDebugger() {
 //////////
 
 
-/////  Timing  //////
-#define TIME_MILLIS_FLAG BIT(0)
-#define TIME_QUARTERS_FLAG BIT(1)
-#define TIME_MINUTES_FLAG BIT(2)
-typedef struct {
-    uint8_t millis;
-    uint8_t quarters;
-    uint8_t minutes;
-    uint8_t changesFlags;  // FIXME: change to bitfield?
-} time;
-
-
-void updateTime(time *t) {
-    t -> millis++;
-    bit_set(t -> changesFlags, TIME_MILLIS_FLAG);
-    
-    if (t -> millis >= 250) {
-        t -> millis = 0;
-        t -> quarters++;
-        bit_set(t -> changesFlags, TIME_QUARTERS_FLAG);
-        
-        if (t -> quarters >= 240) {
-            t -> quarters = 0;
-            t -> minutes++;
-            bit_set(t -> changesFlags, TIME_MINUTES_FLAG);
-        }
-    }
-}
-//////////
-
-
 /////  ADC  //////
 // FIXME: pull this out into a library somewhere, add methods for reading the full 10-bits and multiplexing the channels
 #define ADC_PRESCALE_8 (BIT(ADPS1) | BIT(ADPS0))  // Prescale clock by 8 -- 16M / 8 = 2M (way overkill for this project, gotta look up a more reasonable prescale)
@@ -201,40 +173,6 @@ void setupAdcChannel(uint8_t channel) {
     bit_set(ADCSRA, BIT(ADATE));  // Auto Trigger Enable  (default auto-trigger is free-running mode)
     bit_set(ADCSRA, BIT(ADEN));  // Enable ADC
     bit_set(ADCSRA, BIT(ADSC));  // Start conversions
-}
-//////////
-
-
-/////  Input Events  //////
-// FIXME: pull this out into a library somewhere
-typedef struct {
-    uint8_t debounce0;
-    uint8_t debounce1;
-    uint8_t debouncedState;
-    // REM: maybe add a 'poll' function pointer here so 'debounce' would poll-convert-and-debounce all in one shot
-} debounceState;
-
-
-// vertical stacked counter based debounce
-uint8_t debounce(uint8_t sample, debounceState *debouncer) {
-    uint8_t delta, changes;
-    
-    // Set delta to changes from last stable state
-    delta = sample ^ debouncer -> debouncedState;
-    
-    // Increment counters
-    debouncer -> debounce1 = (debouncer -> debounce1) ^ (debouncer -> debounce0);
-    debouncer -> debounce0  = ~(debouncer -> debounce0);
-    
-    // reset any unchanged bits
-    debouncer -> debounce0 &= delta;
-    debouncer -> debounce1 &= delta;
-    
-    // update state & calculate returned change set
-    changes = ~(~delta | (debouncer -> debounce0) | (debouncer -> debounce1));
-    debouncer -> debouncedState ^= changes;
-    
-    return changes;
 }
 //////////
 
@@ -303,14 +241,13 @@ void setup() {
     setupAdc(ADC_CHANNEL);
     
     usbInit();
-    sei();    
 }
 
 
 //static debounceState debouncer = { 0, 0, 0 };
 static uint8_t isRecording = 0;
 static uint8_t currentTemp = 0;
-void run(time *t, debounceState *debouncer) {  // FIXME: better name
+void run(timeChanges tchanges, time *t, debounceState *debouncer) {  // FIXME: better name
     // Every ms:
     uint8_t changes = debounce(inputPoll(), debouncer);
     if (bit_read(changes, DEBUGGER_BUTTON_PIN) && bit_read(debouncer -> debouncedState, DEBUGGER_BUTTON_PIN)) {
@@ -318,7 +255,7 @@ void run(time *t, debounceState *debouncer) {  // FIXME: better name
     }
     
     
-    if (bit_read(t -> changesFlags, TIME_QUARTERS_FLAG) && ! bit_read(t -> quarters, B8(11))) {
+    if (tchanges.quarters && ! bit_read(t -> quarters, B8(11))) {
         // Every second
         currentTemp = readTemp();
         mutter(currentTemp >> 4);
@@ -337,8 +274,9 @@ int main(void) {
     
     setup();
     wdt_reset();
-    
-    time timer = { 0, 0, 0, 0 };
+    sei();    
+
+    time timer = { 0, 0, 0 };
     debounceState debouncer = { 0, 0, 0 };
     while (1) {  // main event loop
         // every-run-loop stuff
@@ -346,11 +284,9 @@ int main(void) {
 
         if (bit_read(TIFR0, BIT(OCF0A))) {  // check the Compare Flag
             bit_set(TIFR0, BIT(OCF0A));  // "clear" the compare flag by writing to it
-            updateTime(&timer);
+            timeChanges tchanges = updateTime(&timer);
             
-            run(&timer, &debouncer);
-
-            timer.changesFlags = 0;
+            run(tchanges, &timer, &debouncer);
         }
         
         wdt_reset();
